@@ -9,11 +9,11 @@
 #include "predictor.h"
 
 //
-// TODO:Student Information
+// Student Information
 //
-const char *studentName = "NAME";
-const char *studentID   = "PID";
-const char *email       = "EMAIL";
+const char *studentName = "Fan Jin";
+const char *studentID   = "A53308732";
+const char *email       = "f1jin@eng.ucsd.edu";
 
 //------------------------------------//
 //      Predictor Configuration       //
