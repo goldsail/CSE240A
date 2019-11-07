@@ -5,6 +5,6 @@ set(CMAKE_C_STANDARD 99)
 
 include_directories(src)
 
-add_executable(proj1_cse240a_clion
+add_executable(predictor
         src/main.c
         src/predictor.c)
