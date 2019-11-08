@@ -22,8 +22,8 @@ static uint32_t globalHistory;
 
 void init_gshare() {
     BHT = (uint8_t*)malloc(sizeof(uint8_t) * GshareSizeBHT);
-    memset(BHT, 0, sizeof(uint8_t) * GshareSizeBHT);
-    globalHistory = 0;
+    memset(BHT, 1, sizeof(uint8_t) * GshareSizeBHT); // initialize to Weakly Not Taken
+    globalHistory = 0; // initialize to Not Taken
 }
 
 uint8_t predict_gshare(uint32_t pc) {
