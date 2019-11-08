@@ -30,15 +30,6 @@ int bpType;       // Branch Prediction Type
 int verbose;
 
 //------------------------------------//
-//      Predictor Data Structures     //
-//------------------------------------//
-
-//
-//TODO: Add your own Branch Predictor data structures here
-//
-
-
-//------------------------------------//
 //        Predictor Functions         //
 //------------------------------------//
 
@@ -47,9 +38,15 @@ int verbose;
 void
 init_predictor()
 {
-  //
-  //TODO: Initialize Branch Predictor Data Structures
-  //
+    switch (bpType) {
+        case GSHARE:
+            init_gshare();
+            break;
+        case TOURNAMENT:
+        case CUSTOM:
+        default:
+            break;
+    }
 }
 
 // Make a prediction for conditional branch instruction at PC 'pc'
@@ -59,15 +56,12 @@ init_predictor()
 uint8_t
 make_prediction(uint32_t pc)
 {
-  //
-  //TODO: Implement prediction scheme
-  //
-
   // Make a prediction based on the bpType
   switch (bpType) {
     case STATIC:
       return TAKEN;
     case GSHARE:
+        return predict_gshare(pc);
     case TOURNAMENT:
     case CUSTOM:
     default:
@@ -85,7 +79,12 @@ make_prediction(uint32_t pc)
 void
 train_predictor(uint32_t pc, uint8_t outcome)
 {
-  //
-  //TODO: Implement Predictor training
-  //
+    switch (bpType) {
+        case GSHARE:
+            train_gshare(pc, outcome);
+        case TOURNAMENT:
+        case CUSTOM:
+        default:
+            break;
+    }
 }

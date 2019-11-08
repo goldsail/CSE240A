@@ -7,4 +7,5 @@ include_directories(src)
 
 add_executable(predictor
         src/main.c
-        src/predictor.c)
+        src/predictor.c
+        src/gshare.c)
