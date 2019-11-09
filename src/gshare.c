@@ -12,7 +12,7 @@
 //      Predictor Data Structures     //
 //------------------------------------//
 
-#define GshareSizeBHT (1u << (unsigned int)ghistoryBits)
+#define SizeBHT (1u << (unsigned int)ghistoryBits)
 static uint8_t *BHT;
 static uint32_t globalHistory;
 
@@ -21,32 +21,32 @@ static uint32_t globalHistory;
 //------------------------------------//
 
 void init_gshare() {
-    BHT = (uint8_t*)malloc(sizeof(uint8_t) * GshareSizeBHT);
-    memset(BHT, 1, sizeof(uint8_t) * GshareSizeBHT); // initialize to Weakly Not Taken
-    globalHistory = 0; // initialize to Not Taken
+    BHT = (uint8_t*)malloc(sizeof(uint8_t) * SizeBHT);
+    memset(BHT, WeaklyNotTaken, sizeof(uint8_t) * SizeBHT); // initialize to Weakly Not Taken
+    globalHistory = NOTTAKEN; // initialize to Not Taken
 }
 
 uint8_t predict_gshare(uint32_t pc) {
     uint32_t ghr_low = globalHistory;
-    uint32_t add_low = pc & (GshareSizeBHT - 1u);
+    uint32_t add_low = pc & (SizeBHT - 1u);
     uint32_t address = ghr_low ^ add_low;
-    return BHT[address] > 1;
+    return BHT[address] >= WeaklyTaken;
 }
 
 void train_gshare(uint32_t pc, uint8_t outcome) {
     uint32_t ghr_low = globalHistory;
-    uint32_t add_low = pc & (GshareSizeBHT - 1u);
+    uint32_t add_low = pc & (SizeBHT - 1u);
     uint32_t address = ghr_low ^ add_low;
     if (outcome) {
-        if (BHT[address] < 3) {
+        if (BHT[address] < StronglyTaken) {
             BHT[address]++;
         }
     } else {
-        if (BHT[address] > 0) {
+        if (BHT[address] > StronglyNotTaken) {
             BHT[address]--;
         }
     }
-    globalHistory = ((globalHistory << 1u) | (outcome & 1u)) & (GshareSizeBHT - 1u);
+    globalHistory = ((globalHistory << 1u) | (outcome & 1u)) & (SizeBHT - 1u);
 }
 
 #endif

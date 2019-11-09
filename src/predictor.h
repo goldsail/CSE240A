@@ -25,6 +25,16 @@ extern const char *email;
 #define NOTTAKEN  0
 #define TAKEN     1
 
+#define StronglyNotTaken 0
+#define WeaklyNotTaken 1
+#define WeaklyTaken 2
+#define StronglyTaken 3
+
+#define StronglyGlobal 0
+#define WeaklyGlobal 1
+#define WeaklyLocal 2
+#define StronglyLocal 3
+
 // The Different Predictor Types
 #define STATIC      0
 #define GSHARE      1
@@ -55,6 +65,7 @@ extern int verbose;
 //
 void init_predictor();
 void init_gshare();
+void init_tournament();
 
 // Make a prediction for conditional branch instruction at PC 'pc'
 // Returning TAKEN indicates a prediction of taken; returning NOTTAKEN
@@ -62,6 +73,7 @@ void init_gshare();
 //
 uint8_t make_prediction(uint32_t pc);
 uint8_t predict_gshare(uint32_t pc);
+uint8_t predict_tournament(uint32_t pc);
 
 // Train the predictor the last executed branch at PC 'pc' and with
 // outcome 'outcome' (true indicates that the branch was taken, false
@@ -69,5 +81,6 @@ uint8_t predict_gshare(uint32_t pc);
 //
 void train_predictor(uint32_t pc, uint8_t outcome);
 void train_gshare(uint32_t pc, uint8_t outcome);
+void train_tournament(uint32_t pc, uint8_t outcome);
 
 #endif
