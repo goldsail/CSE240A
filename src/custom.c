@@ -12,83 +12,118 @@
 //      Predictor Data Structures     //
 //------------------------------------//
 
-#define SizeGlobalBHT (1u << 11u)
-#define SizeLocalBHT (1u << 11u)
-#define SizeChoiceBHT (1u << 11u)
-#define SizePHT (1u << 9u)
-static uint8_t *globalBHT;
-static uint8_t *localBHT;
-static uint8_t *choiceBHT;
-static uint32_t *PHT;
-static uint32_t globalHistory;
+#define SizeChoicePHT (1u << 11u) // Size of Choice PHT: 26K
+#define SizeBHT (1u << 13u) // Size of BHT: 16K
+#define SizeCache (1u << 10u) // Size of one cache: 10K
+#define TagWidth (1u << 8u) // Size of two caches: 20K
+// Total size: 62K
+
+static uint64_t globalHistory;
+
+typedef struct {
+    int8_t ctr;
+    uint16_t tag;
+} Entry;
+static Entry cacheT[SizeCache];
+static Entry cacheN[SizeCache];
+
+static uint16_t choicePHT[SizeChoicePHT];
+static int8_t BHT[SizeBHT];
 
 //------------------------------------//
 //        Predictor Functions         //
 //------------------------------------//
 
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+
 void init_custom() {
-    globalBHT = malloc(sizeof(uint8_t) * SizeGlobalBHT);
-    localBHT = malloc(sizeof(uint8_t) * SizeLocalBHT);
-    choiceBHT = malloc(sizeof(uint8_t) * SizeChoiceBHT);
-    PHT = malloc(sizeof(uint32_t) * SizePHT);
-    memset(globalBHT, WeaklyNotTaken, sizeof(uint8_t) * SizeGlobalBHT); // initialize to Weakly Not Taken
-    memset(localBHT, WeaklyNotTaken, sizeof(uint8_t) * SizeLocalBHT); // initialize to Weakly Not Taken
-    memset(choiceBHT, WeaklyGlobal, sizeof(uint8_t) * SizeChoiceBHT); // initialize to Weakly Global
-    memset(PHT, NOTTAKEN, sizeof(uint8_t) * SizePHT); // initialize to Not Taken
     globalHistory = NOTTAKEN; // initialize to Not Taken
+    memset(choicePHT, NOTTAKEN, sizeof(uint16_t) * SizeChoicePHT);
+    memset(BHT, WeaklyNotTaken, sizeof(uint8_t) * SizeBHT);
+    for (unsigned i = 0; i < SizeCache; i++) {
+        cacheT->ctr = WeaklyNotTaken;
+        cacheN->ctr = WeaklyNotTaken;
+        cacheT->tag = NOTTAKEN;
+        cacheN->tag = NOTTAKEN;
+    }
 }
 
 uint8_t predict_custom(uint32_t pc) {
-    uint32_t ghr_low = globalHistory;
-    uint32_t add_low = pc & (SizePHT - 1u);
-    uint8_t resultLocal = localBHT[PHT[add_low]] >= WeaklyTaken;
-    uint8_t resultGlobal = globalBHT[ghr_low] >= WeaklyTaken;
-    uint8_t resultChoice = choiceBHT[ghr_low];
-    return (resultChoice >= WeaklyLocal) ? resultLocal : resultGlobal;
+    uint16_t pc_tag = (uint16_t)pc & (TagWidth - 1u);
+    uint16_t pc_low = (uint16_t)pc & (SizeChoicePHT - 1u);
+    uint16_t addr = (pc ^ globalHistory) & (SizeCache - 1u);
+    int8_t choice = BHT[choicePHT[pc_low]];
+    if (choice >= WeaklyTaken) {
+        if (cacheN[addr].tag == pc_tag) {
+            return cacheN[addr].ctr >= WeaklyTaken;
+        } else {
+            return TAKEN;
+        }
+    } else {
+        if (cacheT[addr].tag == pc_tag) {
+            return cacheT[addr].ctr >= WeaklyTaken;
+        } else {
+            return NOTTAKEN;
+        }
+    }
 }
 
 void train_custom(uint32_t pc, uint8_t outcome) {
-    uint32_t ghr_low = globalHistory;
-    uint32_t add_low = pc & (SizePHT - 1u);
-    uint8_t *resultLocal = &localBHT[PHT[add_low]];
-    uint8_t *resultGlobal = &globalBHT[ghr_low];
-    uint8_t *resultChoice = &choiceBHT[ghr_low];
+    uint16_t pc_tag = (uint16_t)pc & (TagWidth - 1u);
+    uint16_t pc_low = (uint16_t)pc & (SizeChoicePHT - 1u);
+    uint16_t addr = (pc ^ globalHistory) & (SizeCache - 1u);
+    int8_t *choice = &BHT[choicePHT[pc_low]];
 
-    // update choice table
-
-    if ((*resultLocal >= WeaklyTaken) == outcome && (*resultGlobal >= WeaklyTaken) != outcome) {
-        if (*resultChoice < StronglyLocal) {
-            (*resultChoice)++;
-        }
-    }
-    if ((*resultLocal >= WeaklyTaken) != outcome && (*resultGlobal >= WeaklyTaken) == outcome) {
-        if (*resultChoice > StronglyGlobal) {
-            (*resultChoice)--;
-        }
-    }
-
-    // update global and local table
-
+    int updateChoicePHT;
     if (outcome) {
-        if (*resultGlobal < StronglyTaken) {
-            (*resultGlobal)++;
-        }
-        if (*resultLocal < StronglyTaken) {
-            (*resultLocal)++;
+        // increase choice PHT
+        updateChoicePHT = 1;
+        if (choice[0] <= WeaklyNotTaken && cacheT[addr].tag == pc_tag && cacheT[addr].ctr >= WeaklyTaken) {
+            // except for this case
+            updateChoicePHT = 0;
         }
     } else {
-        if (*resultGlobal > StronglyNotTaken) {
-            (*resultGlobal)--;
+        // decrease choice PHT
+        updateChoicePHT = -1;
+        if (choice[0] >= WeaklyTaken && cacheN[addr].tag == pc_tag && cacheN[addr].ctr <= WeaklyNotTaken) {
+            // except for this case
+            updateChoicePHT = 0;
         }
-        if (*resultLocal > StronglyNotTaken) {
-            (*resultLocal)--;
+    }
+    if (updateChoicePHT > 0) choice[0] = MIN(choice[0] + 1, 3);
+    if (updateChoicePHT < 0) choice[0] = MAX(choice[0] - 1, 0);
+
+    Entry *updateCache = NULL;
+    if (choice[0] >= WeaklyTaken) {
+        if (!outcome || cacheN[addr].tag == pc_tag) {
+            // update N cache
+            updateCache = cacheN;
+        }
+    } else {
+        if (outcome || cacheT[addr].tag == pc_tag) {
+            // update T cache
+            updateCache = cacheT;
+        }
+    }
+    if (updateCache != NULL) {
+        if (updateCache[addr].tag == pc_tag) {
+            if (outcome)
+                updateCache[addr].ctr = MIN(updateCache[addr].ctr + 1, 3);
+            else
+                updateCache[addr].ctr = MAX(updateCache[addr].ctr - 1, 0);
+        } else {
+            updateCache[addr].tag = pc_tag;
+            if (outcome)
+                updateCache[addr].ctr = WeaklyTaken;
+            else
+                updateCache[addr].ctr = WeaklyNotTaken;
         }
     }
 
     // update pattern
-
-    PHT[add_low] = ((PHT[add_low] << 1u) | (outcome & 1u)) & (SizeLocalBHT - 1u);
-    globalHistory = ((globalHistory << 1u) | (outcome & 1u)) & (SizeGlobalBHT - 1u);
+    choicePHT[pc_low] = ((choicePHT[pc_low] << 1u) | (outcome & 1u)) & (SizeBHT - 1u);
+    globalHistory = (globalHistory << 1u) | (outcome & 1u);
 }
 
 #endif
