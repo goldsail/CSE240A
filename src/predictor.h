@@ -66,6 +66,7 @@ extern int verbose;
 void init_predictor();
 void init_gshare();
 void init_tournament();
+void init_custom();
 
 // Make a prediction for conditional branch instruction at PC 'pc'
 // Returning TAKEN indicates a prediction of taken; returning NOTTAKEN
@@ -74,6 +75,7 @@ void init_tournament();
 uint8_t make_prediction(uint32_t pc);
 uint8_t predict_gshare(uint32_t pc);
 uint8_t predict_tournament(uint32_t pc);
+uint8_t predict_custom(uint32_t pc);
 
 // Train the predictor the last executed branch at PC 'pc' and with
 // outcome 'outcome' (true indicates that the branch was taken, false
@@ -82,5 +84,6 @@ uint8_t predict_tournament(uint32_t pc);
 void train_predictor(uint32_t pc, uint8_t outcome);
 void train_gshare(uint32_t pc, uint8_t outcome);
 void train_tournament(uint32_t pc, uint8_t outcome);
+void train_custom(uint32_t pc, uint8_t outcome);
 
 #endif

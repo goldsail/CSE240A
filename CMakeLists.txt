@@ -8,4 +8,6 @@ include_directories(src)
 add_executable(predictor
         src/main.c
         src/predictor.c
-        src/gshare.c src/tournament.c)
+        src/gshare.c
+        src/tournament.c
+        src/custom.c)

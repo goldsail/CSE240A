@@ -46,6 +46,8 @@ init_predictor()
             init_tournament();
             break;
         case CUSTOM:
+            init_custom();
+            break;
         default:
             break;
     }
@@ -67,6 +69,7 @@ make_prediction(uint32_t pc)
     case TOURNAMENT:
         return predict_tournament(pc);
     case CUSTOM:
+        return predict_custom(pc);
     default:
       break;
   }
@@ -90,6 +93,8 @@ train_predictor(uint32_t pc, uint8_t outcome)
             train_tournament(pc, outcome);
             break;
         case CUSTOM:
+            train_custom(pc, outcome);
+            break;
         default:
             break;
     }
